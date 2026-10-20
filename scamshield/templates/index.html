@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Check a suspicious message · ScamShield India{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="hero-copy">
+    <span class="eyebrow"><span class="status-dot"></span> COMMUNITY-POWERED PROTECTION</span>
+    <h1>Pause before<br>you <span class="text-accent">pay.</span></h1>
+    <p class="hero-description">Paste a suspicious SMS, link, phone number, or UPI ID. Get a risk check with clear reasons—before you act.</p>
+    <div class="trust-line"><span aria-hidden="true">✳</span> Your check runs on this app's server. Messages aren't sent to an external AI service.</div>
+  </div>
+  <div class="shield-illustration" aria-hidden="true">
+    <div class="shield-glow"></div>
+    <div class="shield-shape"><span>✓</span></div>
+    <span class="orbit orbit-one">UPI</span><span class="orbit orbit-two">SMS</span>
+  </div>
+</section>
+
+<section class="checker-card" aria-labelledby="checker-title">
+  <div class="card-heading">
+    <div><span class="section-kicker">QUICK CHECK</span><h2 id="checker-title">What feels suspicious?</h2></div>
+    <span class="privacy-pill"><span>●</span> Private by default</span>
+  </div>
+  <form method="post" class="check-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="visually-hidden" for="message">Suspicious message or identifier</label>
+    <textarea id="message" name="text" maxlength="2000" placeholder="Paste the SMS, suspicious link, phone number, or UPI ID here…" required>{{ text }}</textarea>
+    <div class="form-bottom">
+      <div class="input-tools">
+        <span class="input-hint">Never share your OTP, PIN, password, or full card details.</span>
+        <span class="character-count" id="character-count" aria-live="polite">0 / 2,000</span>
+      </div>
+      <div class="check-actions">
+        <button class="button button-secondary button-clear" type="button" id="clear-message">Clear</button>
+        <button class="button button-primary" type="submit">Check for scams <span aria-hidden="true">→</span></button>
+      </div>
+    </div>
+  </form>
+  <div class="sample-checks" aria-label="Try an example">
+    <span>Try a sample:</span>
+    <button type="button" class="sample-chip" data-sample="URGENT: Your bank account will be blocked today. Click here to update KYC and share your OTP.">Fake KYC threat</button>
+    <button type="button" class="sample-chip" data-sample="Your UPI payment of Rs 240 was successful. Thank you.">Normal payment</button>
+  </div>
+</section>
+
+{% if result %}
+<section class="result-card result-{{ result.label|lower }}" aria-live="polite">
+  <div class="result-score">
+    <div class="score-ring"><span>{{ result.score }}</span><small>/ 100</small></div>
+    <div><span class="section-kicker">RISK ASSESSMENT</span><h2>{{ result.label }}</h2><p>Higher score means more warning signs.</p></div>
+  </div>
+  <div class="result-details">
+    <h3>Why this result?</h3>
+    <ul>{% for reason in result.reasons %}<li>{{ reason }}</li>{% endfor %}</ul>
+    <p class="model-note">This 0–100 score is a screening signal, not a probability or a guarantee. {{ result.model_note }}</p>
+  </div>
+  <div class="result-actions">
+  {% if result.label == "Scam" %}
+    <p><strong>Don't pay, click, or reply.</strong> If you have already lost money, call India's cyber fraud helpline <a href="tel:1930">1930</a> immediately and report at <a href="https://www.cybercrime.gov.in/" target="_blank" rel="noopener noreferrer">cybercrime.gov.in</a>.</p>
+  {% elif result.label == "Suspicious" %}
+    <p><strong>Pause and verify independently.</strong> Contact your bank or provider using its official app or the number on its official website—not details in the message.</p>
+  {% else %}
+    <p>No strong warning signs were found, but that doesn't prove a message is safe. Verify unexpected payment requests through your bank's official app.</p>
+  {% endif %}
+  <form method="post" action="{{ url_for('main.report') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="kind" value="{{ result.report_kind }}">
+    <input type="hidden" name="value" value="{{ text }}">
+    <input type="hidden" name="category" value="other">
+    <button class="button button-secondary" type="submit">Send this message for review</button>
+  </form>
+  </div>
+</section>
+{% endif %}
+
+<section class="safety-grid" aria-label="Stay safe">
+  <article><span class="safety-icon">01</span><h3>Stop and check</h3><p>Scammers create urgency. Take a moment to verify.</p></article>
+  <article><span class="safety-icon">02</span><h3>Never share secrets</h3><p>Your bank will never ask for your UPI PIN or OTP.</p></article>
+  <article><span class="safety-icon">03</span><h3>Report what you see</h3><p>Help the community spot new scam patterns.</p></article>
+</section>
+<script>
+  const messageInput = document.getElementById("message");
+  const count = document.getElementById("character-count");
+  const updateCount = () => { count.textContent = `${messageInput.value.length.toLocaleString()} / 2,000`; };
+  messageInput.addEventListener("input", updateCount);
+  document.getElementById("clear-message").addEventListener("click", () => {
+    messageInput.value = "";
+    updateCount();
+    messageInput.focus();
+  });
+  document.querySelectorAll(".sample-chip").forEach((button) => {
+    button.addEventListener("click", () => {
+      messageInput.value = button.dataset.sample;
+      updateCount();
+      messageInput.focus();
+    });
+  });
+  updateCount();
+</script>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Report a scam · ScamShield India{% endblock %}
+{% block content %}
+<section class="page-intro">
+  <span class="eyebrow">COMMUNITY REPORT</span>
+  <h1>Help protect the next person.</h1>
+  <p>Reports are reviewed by a moderator before being added to community checks.</p>
+</section>
+<section class="form-card">
+  <form method="post" class="stack-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="kind">What are you reporting?</label>
+    <select name="kind" id="kind" required>
+      <option value="sms" {% if selected_kind == "sms" %}selected{% endif %}>Suspicious SMS or message</option>
+      <option value="url" {% if selected_kind == "url" %}selected{% endif %}>Website or link</option>
+      <option value="phone" {% if selected_kind == "phone" %}selected{% endif %}>Phone number</option>
+      <option value="upi_id" {% if selected_kind == "upi_id" %}selected{% endif %}>UPI ID</option>
+    </select>
+    <label for="value">Message or identifier</label>
+    <textarea name="value" id="value" maxlength="2000" placeholder="Paste only the suspicious message or identifier. Do not include your OTP, PIN, or account details." required>{{ value }}</textarea>
+    <label for="category">Scam type</label>
+    <select name="category" id="category" required>
+      {% for value, label in categories.items() %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+    </select>
+    <label for="details">What happened? <span class="label-optional">(optional)</span></label>
+    <textarea name="details" id="details" maxlength="500" rows="3" placeholder="Share context that could help a moderator verify this report."></textarea>
+    <div class="privacy-note">Please do not include personal financial information, passwords, OTPs, or PINs. Reports may be used to improve community scam checks.</div>
+    <button class="button button-primary" type="submit">Submit for review <span aria-hidden="true">→</span></button>
+  </form>
+</section>
+{% endblock %}

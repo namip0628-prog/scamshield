@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Moderator sign in · ScamShield India{% endblock %}
+{% block content %}
+<section class="page-intro">
+  <span class="eyebrow">MODERATOR ACCESS</span>
+  <h1>Review community reports.</h1>
+  <p>Verified submissions become part of the community indicator database.</p>
+</section>
+<section class="form-card">
+  <form method="post" class="stack-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="token">Moderator token</label>
+    <input type="password" name="token" id="token" autocomplete="current-password" required>
+    <button class="button button-primary" type="submit">Sign in</button>
+  </form>
+</section>
+{% endblock %}

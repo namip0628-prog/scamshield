@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Community trends · ScamShield India{% endblock %}
+{% block head %}<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>{% endblock %}
+{% block content %}
+<section class="page-intro">
+  <span class="eyebrow">COMMUNITY SIGNAL</span>
+  <h1>See what people are reporting.</h1>
+  <p>Only moderator-verified reports contribute to these trends and community checks.</p>
+</section>
+<section class="stats-row">
+  <div class="stat-card"><span class="section-kicker">VERIFIED REPORTS</span><strong>{{ total }}</strong><span>confirmed community reports</span></div>
+  <div class="stat-card"><span class="section-kicker">CHECKABLE INDICATORS</span><strong>{{ indicators }}</strong><span>verified messages and identifiers</span></div>
+</section>
+<section class="chart-card">
+  <div class="card-heading"><div><span class="section-kicker">REPORTED SCAM TYPES</span><h2>Trending categories</h2></div></div>
+  {% if total %}
+    <div class="chart-wrap"><canvas id="trendChart" aria-label="Chart of verified reports by scam category"></canvas></div>
+  {% else %}
+    <div class="empty-state"><span class="empty-mark">↗</span><h3>No verified reports yet</h3><p>Be the first to <a href="{{ url_for('main.report') }}">share a report</a> with the community.</p></div>
+  {% endif %}
+</section>
+{% if total %}
+<script>
+  const labels = {{ categories|tojson }};
+  const values = {{ counts|tojson }};
+  new Chart(document.getElementById("trendChart"), {
+    type: "bar",
+    data: { labels, datasets: [{ data: values, backgroundColor: "#43a890", borderRadius: 8, maxBarThickness: 54 }] },
+    options: {
+      indexAxis: "y", responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: "#e9efed" } },
+        y: { grid: { display: false }, ticks: { color: "#35413f" } }
+      }
+    }
+  });
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Check suspicious UPI and SMS messages with ScamShield India.">
+  <title>{% block title %}ScamShield India{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="{{ url_for('main.index') }}" aria-label="ScamShield India home">
+      <span class="brand-mark">S</span><span>scamshield<span class="brand-light">.india</span></span>
+    </a>
+    <nav aria-label="Main navigation">
+      <a href="{{ url_for('main.index') }}">Check a message</a>
+      <a href="{{ url_for('main.dashboard') }}">Community trends</a>
+      <a class="nav-report" href="{{ url_for('main.report') }}">＋ Report a scam</a>
+    </nav>
+  </header>
+
+  <main>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-stack" role="status">
+          {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <span>Built for safer digital payments in India.</span>
+    <span>ScamShield is an aid, not a guarantee. Verify through official channels.</span>
+  </footer>
+</body>
+</html>

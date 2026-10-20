@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Moderate reports · ScamShield India{% endblock %}
+{% block content %}
+<section class="page-intro moderator-heading">
+  <div><span class="eyebrow">MODERATOR TOOLS</span><h1>Community reports</h1><p>Review submissions before they affect scam checks.</p></div>
+  <form method="post" action="{{ url_for('main.moderator_logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button button-secondary" type="submit">Sign out</button></form>
+</section>
+<section class="report-list">
+  {% for item in reports %}
+  <article class="moderation-card">
+    <div class="moderation-meta"><span class="type-chip">{{ item.kind|replace('_', ' ') }}</span><span class="type-chip">{{ categories.get(item.category, "Other") }}</span><span class="status status-{{ item.status }}">{{ item.status }}</span><time>{{ item.created_at.strftime("%Y-%m-%d %H:%M UTC") }}</time></div>
+    <h2>{{ item.value }}</h2>
+    {% if item.details %}<p>{{ item.details }}</p>{% endif %}
+    {% if item.status == "pending" %}
+    <div class="moderation-actions">
+      <form method="post" action="{{ url_for('main.moderate_report', report_id=item.id, action='verify') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button button-primary" type="submit">Verify report</button></form>
+      <form method="post" action="{{ url_for('main.moderate_report', report_id=item.id, action='reject') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button button-secondary" type="submit">Reject</button></form>
+    </div>
+    {% endif %}
+  </article>
+  {% else %}
+  <div class="empty-state"><h3>No reports submitted yet</h3><p>New submissions will appear here for review.</p></div>
+  {% endfor %}
+</section>
+{% endblock %}
