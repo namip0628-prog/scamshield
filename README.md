@@ -33,12 +33,12 @@ py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 $env:FLASK_APP = "wsgi:app"
-flask init-db
 flask run
 ```
 
 Open <http://127.0.0.1:5000>. The local SQLite database is created at
-`instance/scamshield.sqlite`.
+`instance/scamshield.sqlite`; missing tables are created automatically when
+the app starts.
 
 Configure moderation in a separate PowerShell session before launching:
 
@@ -59,15 +59,16 @@ Set `DATABASE_URL` to the PostgreSQL connection string. Render's older
 Set `FLASK_ENV=production` so session cookies use HTTPS and the app refuses to
 start without a secret key.
 
-Install with `pip install -r requirements.txt`, initialize tables once with
-`flask --app wsgi:app init-db`, then start with `gunicorn wsgi:app`. The included
-`Procfile` configures the Gunicorn start command.
+Install with `pip install -r requirements.txt`, then start with
+`gunicorn wsgi:app`. Missing database tables are created automatically when the
+app starts. The `flask --app wsgi:app init-db` command remains available for
+manual initialization. The included `Procfile` configures the Gunicorn start
+command.
 
 For a Render web service, use the repository root as the root directory, set the
 build command to `pip install -r requirements.txt`, and the start command to
-`gunicorn wsgi:app`. Initialize the PostgreSQL schema with
-`flask --app wsgi:app init-db` after the database and environment variables are
-available and before accepting traffic.
+`gunicorn wsgi:app`. If `DATABASE_URL` points to PostgreSQL, missing tables are
+created automatically when the service starts.
 
 ## Tests
 

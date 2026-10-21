@@ -49,6 +49,9 @@ def create_app(test_config=None):
 
     app.register_blueprint(main)
 
+    with app.app_context():
+        db.create_all()
+
     @app.cli.command("init-db")
     def init_db():
         """Create the database tables."""
