@@ -3,10 +3,10 @@
 {% block content %}
 <section class="hero">
   <div class="hero-copy">
-    <span class="eyebrow"><span class="status-dot"></span> COMMUNITY-POWERED PROTECTION</span>
-    <h1>Pause before<br>you <span class="text-accent">pay.</span></h1>
-    <p class="hero-description">Paste a suspicious SMS, link, phone number, or UPI ID. Get a risk check with clear reasons—before you act.</p>
-    <div class="trust-line"><span aria-hidden="true">✳</span> Your check runs on this app's server. Messages aren't sent to an external AI service.</div>
+    <span class="eyebrow"><span class="status-dot"></span> {% if language == "hi" %}समुदाय-संचालित सुरक्षा{% else %}COMMUNITY-POWERED PROTECTION{% endif %}</span>
+    <h1>{% if language == "hi" %}भुगतान से<br>पहले <span class="text-accent">जांचें।</span>{% else %}Pause before<br>you <span class="text-accent">pay.</span>{% endif %}</h1>
+    <p class="hero-description">{% if language == "hi" %}संदिग्ध SMS, लिंक, फोन नंबर या UPI ID की जांच करें और कारण समझें।{% else %}Paste a suspicious SMS, link, phone number, or UPI ID. Get a risk check with clear reasons—before you act.{% endif %}</p>
+    <div class="trust-line"><span aria-hidden="true">✳</span> {% if language == "hi" %}जांच इस ऐप के सर्वर पर होती है; संदेश बाहरी AI सेवा को नहीं भेजे जाते।{% else %}Your check runs on this app's server. Messages aren't sent to an external AI service.{% endif %}</div>
   </div>
   <div class="shield-illustration" aria-hidden="true">
     <div class="shield-glow"></div>
@@ -17,65 +17,72 @@
 
 <section class="checker-card" aria-labelledby="checker-title">
   <div class="card-heading">
-    <div><span class="section-kicker">QUICK CHECK</span><h2 id="checker-title">What feels suspicious?</h2></div>
-    <span class="privacy-pill"><span>●</span> Private by default</span>
+    <div><span class="section-kicker">{% if language == "hi" %}तुरंत जांच{% else %}QUICK CHECK{% endif %}</span><h2 id="checker-title">{% if language == "hi" %}क्या संदिग्ध लग रहा है?{% else %}What feels suspicious?{% endif %}</h2></div>
+    <span class="privacy-pill"><span>●</span> {% if language == "hi" %}जांच सहेजी नहीं जाती{% else %}Private by default{% endif %}</span>
   </div>
   <form method="post" class="check-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <label class="visually-hidden" for="message">Suspicious message or identifier</label>
-    <textarea id="message" name="text" maxlength="2000" placeholder="Paste the SMS, suspicious link, phone number, or UPI ID here…" required>{{ text }}</textarea>
+    <label class="visually-hidden" for="message">{% if language == "hi" %}संदिग्ध संदेश या पहचान{% else %}Suspicious message or identifier{% endif %}</label>
+    <textarea id="message" name="text" maxlength="2000" placeholder="{% if language == 'hi' %}SMS, लिंक, फोन नंबर या UPI ID यहां डालें…{% else %}Paste the SMS, suspicious link, phone number, or UPI ID here…{% endif %}" required>{{ text }}</textarea>
+    <div class="language-choice">
+      <label for="language">{% if language == "hi" %}जांच की भाषा{% else %}Check language{% endif %}</label>
+      <select id="language" name="language">
+        <option value="en" {% if language == "en" %}selected{% endif %}>English</option>
+        <option value="hi" {% if language == "hi" %}selected{% endif %}>हिन्दी</option>
+      </select>
+    </div>
     <div class="form-bottom">
       <div class="input-tools">
-        <span class="input-hint">Never share your OTP, PIN, password, or full card details.</span>
+        <span class="input-hint">{% if language == "hi" %}OTP, PIN, पासवर्ड या कार्ड की पूरी जानकारी साझा न करें।{% else %}Never share your OTP, PIN, password, or full card details.{% endif %}</span>
         <span class="character-count" id="character-count" aria-live="polite">0 / 2,000</span>
       </div>
       <div class="check-actions">
-        <button class="button button-secondary button-clear" type="button" id="clear-message">Clear</button>
-        <button class="button button-primary" type="submit">Check for scams <span aria-hidden="true">→</span></button>
+        <button class="button button-secondary button-clear" type="button" id="clear-message">{% if language == "hi" %}हटाएं{% else %}Clear{% endif %}</button>
+        <button class="button button-primary" type="submit">{% if language == "hi" %}धोखाधड़ी के संकेत जांचें{% else %}Check for scams{% endif %} <span aria-hidden="true">→</span></button>
       </div>
     </div>
   </form>
   <div class="sample-checks" aria-label="Try an example">
-    <span>Try a sample:</span>
-    <button type="button" class="sample-chip" data-sample="URGENT: Your bank account will be blocked today. Click here to update KYC and share your OTP.">Fake KYC threat</button>
-    <button type="button" class="sample-chip" data-sample="Your UPI payment of Rs 240 was successful. Thank you.">Normal payment</button>
+    <span>{% if language == "hi" %}उदाहरण आज़माएं:{% else %}Try a sample:{% endif %}</span>
+    <button type="button" class="sample-chip" data-sample="URGENT: Your bank account will be blocked today. Click here to update KYC and share your OTP.">{% if language == "hi" %}फर्जी KYC धमकी{% else %}Fake KYC threat{% endif %}</button>
+    <button type="button" class="sample-chip" data-sample="Your UPI payment of Rs 240 was successful. Thank you.">{% if language == "hi" %}सामान्य भुगतान{% else %}Normal payment{% endif %}</button>
   </div>
 </section>
 
 {% if result %}
-<section class="result-card result-{{ result.label|lower }}" aria-live="polite">
+<section class="result-card result-{{ result.label|lower|replace(' ', '-') }}" aria-live="polite">
   <div class="result-score">
     <div class="score-ring"><span>{{ result.score }}</span><small>/ 100</small></div>
-    <div><span class="section-kicker">RISK ASSESSMENT</span><h2>{{ result.label }}</h2><p>Higher score means more warning signs.</p></div>
+    <div><span class="section-kicker">{% if language == "hi" %}जोखिम संकेत{% else %}RISK ASSESSMENT{% endif %}</span><h2>{% if language == "hi" %}{{ {"Scam": "धोखाधड़ी के संकेत", "Suspicious": "संदिग्ध", "No clear warning signs": "स्पष्ट चेतावनी नहीं"}[result.label] }}{% else %}{{ result.label }}{% endif %}</h2><p>{% if language == "hi" %}ऊंचा स्कोर अधिक चेतावनी संकेत दिखाता है।{% else %}Higher score means more warning signs.{% endif %}</p></div>
   </div>
   <div class="result-details">
-    <h3>Why this result?</h3>
+    <h3>{% if language == "hi" %}यह परिणाम क्यों?{% else %}Why this result?{% endif %}</h3>
     <ul>{% for reason in result.reasons %}<li>{{ reason }}</li>{% endfor %}</ul>
-    <p class="model-note">This 0–100 score is a screening signal, not a probability or a guarantee. {{ result.model_note }}</p>
+    <p class="model-note">{% if language == "hi" %}यह 0–100 स्कोर प्रारंभिक संकेत है, संभावना या गारंटी नहीं।{% else %}This 0–100 score is a screening signal, not a probability or a guarantee.{% endif %} {{ result.model_note }}</p>
   </div>
   <div class="result-actions">
   {% if result.label == "Scam" %}
-    <p><strong>Don't pay, click, or reply.</strong> If you have already lost money, call India's cyber fraud helpline <a href="tel:1930">1930</a> immediately and report at <a href="https://www.cybercrime.gov.in/" target="_blank" rel="noopener noreferrer">cybercrime.gov.in</a>.</p>
+    <p>{% if language == "hi" %}<strong>भुगतान न करें, लिंक न खोलें और जवाब न दें।</strong> यदि पैसे खोए हैं, तुरंत <a href="tel:1930">1930</a> पर कॉल करें और <a href="https://www.cybercrime.gov.in/" target="_blank" rel="noopener noreferrer">cybercrime.gov.in</a> पर रिपोर्ट करें।{% else %}<strong>Don't pay, click, or reply.</strong> If you have already lost money, call India's cyber fraud helpline <a href="tel:1930">1930</a> immediately and report at <a href="https://www.cybercrime.gov.in/" target="_blank" rel="noopener noreferrer">cybercrime.gov.in</a>.{% endif %}</p>
   {% elif result.label == "Suspicious" %}
-    <p><strong>Pause and verify independently.</strong> Contact your bank or provider using its official app or the number on its official website—not details in the message.</p>
+    <p>{% if language == "hi" %}<strong>रुकें और स्वतंत्र रूप से जांचें।</strong> बैंक या सेवा प्रदाता से उसके आधिकारिक ऐप या वेबसाइट पर दिए नंबर से संपर्क करें—संदेश में दिए विवरण से नहीं।{% else %}<strong>Pause and verify independently.</strong> Contact your bank or provider using its official app or the number on its official website—not details in the message.{% endif %}</p>
   {% else %}
-    <p>No strong warning signs were found, but that doesn't prove a message is safe. Verify unexpected payment requests through your bank's official app.</p>
+    <p>{% if language == "hi" %}स्पष्ट चेतावनी नहीं मिली, लेकिन इससे संदेश सुरक्षित साबित नहीं होता। अनपेक्षित भुगतान अनुरोध बैंक के आधिकारिक ऐप से जांचें।{% else %}No strong warning signs were found, but that doesn't prove a message is safe. Verify unexpected payment requests through your bank's official app.{% endif %}</p>
   {% endif %}
   <form method="post" action="{{ url_for('main.report') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="kind" value="{{ result.report_kind }}">
     <input type="hidden" name="value" value="{{ text }}">
     <input type="hidden" name="category" value="other">
-    <button class="button button-secondary" type="submit">Send this message for review</button>
+    <button class="button button-secondary" type="submit">{% if language == "hi" %}इस संदेश को समीक्षा के लिए भेजें{% else %}Send this message for review{% endif %}</button>
   </form>
   </div>
 </section>
 {% endif %}
 
 <section class="safety-grid" aria-label="Stay safe">
-  <article><span class="safety-icon">01</span><h3>Stop and check</h3><p>Scammers create urgency. Take a moment to verify.</p></article>
-  <article><span class="safety-icon">02</span><h3>Never share secrets</h3><p>Your bank will never ask for your UPI PIN or OTP.</p></article>
-  <article><span class="safety-icon">03</span><h3>Report what you see</h3><p>Help the community spot new scam patterns.</p></article>
+  <article><span class="safety-icon">01</span><h3>{% if language == "hi" %}रुकें और जांचें{% else %}Stop and check{% endif %}</h3><p>{% if language == "hi" %}धोखेबाज़ जल्दबाजी कराते हैं। सत्यापन के लिए समय लें।{% else %}Scammers create urgency. Take a moment to verify.{% endif %}</p></article>
+  <article><span class="safety-icon">02</span><h3>{% if language == "hi" %}गोपनीय जानकारी साझा न करें{% else %}Never share secrets{% endif %}</h3><p>{% if language == "hi" %}बैंक कभी UPI PIN या OTP नहीं मांगता।{% else %}Your bank will never ask for your UPI PIN or OTP.{% endif %}</p></article>
+  <article><span class="safety-icon">03</span><h3>{% if language == "hi" %}रिपोर्ट करें{% else %}Report what you see{% endif %}</h3><p>{% if language == "hi" %}समुदाय को नए धोखाधड़ी तरीकों की पहचान में मदद करें।{% else %}Help the community spot new scam patterns.{% endif %}</p></article>
 </section>
 <script>
   const messageInput = document.getElementById("message");

@@ -6,13 +6,26 @@
   <span class="eyebrow">COMMUNITY SIGNAL</span>
   <h1>See what people are reporting.</h1>
   <p>Only moderator-verified reports contribute to these trends and community checks.</p>
+  <p class="trust-note">These are reports submitted to ScamShield, not a measure of all scams or a guarantee that an identifier is fraudulent.</p>
 </section>
 <section class="stats-row">
-  <div class="stat-card"><span class="section-kicker">VERIFIED REPORTS</span><strong>{{ total }}</strong><span>confirmed community reports</span></div>
+  <div class="stat-card"><span class="section-kicker">MODERATOR-VERIFIED REPORTS</span><strong>{{ total }}</strong><span>reports in the selected period</span></div>
   <div class="stat-card"><span class="section-kicker">CHECKABLE INDICATORS</span><strong>{{ indicators }}</strong><span>verified messages and identifiers</span></div>
 </section>
 <section class="chart-card">
-  <div class="card-heading"><div><span class="section-kicker">REPORTED SCAM TYPES</span><h2>Trending categories</h2></div></div>
+  <div class="card-heading">
+    <div><span class="section-kicker">REPORTED SCAM TYPES</span><h2>Report categories</h2></div>
+    <form method="get" class="filter-form">
+      <label for="period">Time period</label>
+      <select id="period" name="period" onchange="this.form.submit()">
+        <option value="7" {% if period == "7" %}selected{% endif %}>Last 7 days</option>
+        <option value="30" {% if period == "30" %}selected{% endif %}>Last 30 days</option>
+        <option value="90" {% if period == "90" %}selected{% endif %}>Last 90 days</option>
+        <option value="all" {% if period == "all" %}selected{% endif %}>All time</option>
+      </select>
+    </form>
+  </div>
+  {% if updated_at %}<p class="data-freshness">Most recently reviewed: {{ updated_at.strftime("%Y-%m-%d %H:%M UTC") }}</p>{% endif %}
   {% if total %}
     <div class="chart-wrap"><canvas id="trendChart" aria-label="Chart of verified reports by scam category"></canvas></div>
   {% else %}

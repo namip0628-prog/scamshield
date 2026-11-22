@@ -13,9 +13,21 @@
     {% if item.details %}<p>{{ item.details }}</p>{% endif %}
     {% if item.status == "pending" %}
     <div class="moderation-actions">
-      <form method="post" action="{{ url_for('main.moderate_report', report_id=item.id, action='verify') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button button-primary" type="submit">Verify report</button></form>
-      <form method="post" action="{{ url_for('main.moderate_report', report_id=item.id, action='reject') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button button-secondary" type="submit">Reject</button></form>
+      <form method="post" action="{{ url_for('main.moderate_report', report_id=item.id, action='verify') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="review-note-{{ item.id }}">Optional moderator note</label>
+        <input id="review-note-{{ item.id }}" name="review_note" maxlength="500" placeholder="Briefly explain your decision">
+        <button class="button button-primary" type="submit">Verify report</button>
+      </form>
+      <form method="post" action="{{ url_for('main.moderate_report', report_id=item.id, action='reject') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="reject-note-{{ item.id }}">Optional moderator note</label>
+        <input id="reject-note-{{ item.id }}" name="review_note" maxlength="500" placeholder="Briefly explain your decision">
+        <button class="button button-secondary" type="submit">Reject</button>
+      </form>
     </div>
+    {% elif item.review_note %}
+    <p class="review-note"><strong>Moderator note:</strong> {{ item.review_note }}</p>
     {% endif %}
   </article>
   {% else %}

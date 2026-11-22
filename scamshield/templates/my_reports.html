@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}My reports · ScamShield India{% endblock %}
+{% block content %}
+<section class="page-intro">
+  <span class="eyebrow">YOUR ACCOUNT</span>
+  <h1>Your community reports.</h1>
+  <p>Signed in as {{ current_user.email }}. Report status is shared across your devices.</p>
+  {% if not current_user.email_verified %}
+  <form method="post" action="{{ url_for('main.resend_verification') }}" class="verification-reminder">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <span>Your email is not verified.</span>
+    <button class="button button-secondary" type="submit">Resend verification email</button>
+  </form>
+  {% endif %}
+</section>
+<section class="report-list">
+  {% for item in reports %}
+  <article class="moderation-card">
+    <div class="moderation-meta">
+      <span class="type-chip">{{ item.kind|replace('_', ' ') }}</span>
+      <span class="type-chip">{{ categories.get(item.category, "Other") }}</span>
+      <span class="status status-{{ item.status }}">{{ item.status }}</span>
+      <time>{{ item.created_at.strftime("%Y-%m-%d %H:%M UTC") }}</time>
+    </div>
+    <h2>{{ item.value }}</h2>
+    {% if item.details %}<p>{{ item.details }}</p>{% endif %}
+    {% if item.review_note %}<p class="review-note"><strong>Moderator note:</strong> {{ item.review_note }}</p>{% endif %}
+    {% if item.reviewed_at %}<p class="reviewed-time">Reviewed {{ item.reviewed_at.strftime("%Y-%m-%d %H:%M UTC") }}</p>{% endif %}
+  </article>
+  {% else %}
+  <div class="empty-state">
+    <h3>You have not submitted any reports yet</h3>
+    <p><a href="{{ url_for('main.report') }}">Submit a report</a> to help the community identify scam patterns.</p>
+  </div>
+  {% endfor %}
+</section>
+{% endblock %}

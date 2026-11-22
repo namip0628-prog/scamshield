@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% if mode == "register" %}
+  {% set page_title = "Create an account" %}
+{% else %}
+  {% set page_title = "Sign in" %}
+{% endif %}
+{% block title %}{{ page_title }} · ScamShield India{% endblock %}
+{% block content %}
+<section class="page-intro">
+  <span class="eyebrow">YOUR SCAMSHIELD ACCOUNT</span>
+  <h1>{{ page_title }}.</h1>
+  <p>Sign in on each device to see the scam reports you submitted. Your message checks are not saved to your account.</p>
+</section>
+<section class="form-card">
+  <form method="post" class="stack-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="email">Email address</label>
+    <input type="email" name="email" id="email" autocomplete="email" maxlength="254" required>
+    <label for="password">Password</label>
+    <input type="password" name="password" id="password"
+           autocomplete="{{ 'new-password' if mode == 'register' else 'current-password' }}"
+           minlength="{{ 12 if mode == 'register' else 1 }}" maxlength="128" required>
+    {% if mode == "register" %}
+      <label for="confirmation">Confirm password</label>
+      <input type="password" name="confirmation" id="confirmation" autocomplete="new-password" minlength="12" maxlength="128" required>
+      <p class="form-help">Use at least 12 characters. Avoid reusing a password from another site.</p>
+    {% endif %}
+    <button class="button button-primary" type="submit">{{ "Create account" if mode == "register" else "Sign in" }}</button>
+  </form>
+  {% if google_sign_in_enabled %}
+    <div class="auth-divider"><span>or</span></div>
+    <a class="button button-secondary google-button" href="{{ url_for('main.google_login') }}">Continue with Google</a>
+  {% endif %}
+  <p class="auth-switch">
+    {% if mode == "register" %}
+      Already have an account? <a href="{{ url_for('main.login') }}">Sign in</a>.
+    {% else %}
+      <a href="{{ url_for('main.forgot_password') }}">Forgot your password?</a><br>
+      New to ScamShield? <a href="{{ url_for('main.register') }}">Create an account</a>.
+    {% endif %}
+  </p>
+</section>
+{% endblock %}

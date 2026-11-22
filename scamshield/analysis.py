@@ -1,87 +1,121 @@
 import re
-from functools import lru_cache
 from urllib.parse import urlparse
-
-import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import make_pipeline
 
 from .models import Indicator
 
-_TRAINING_EXAMPLES = [
-    ("Your bank statement is ready to view in the official app.", "Safe"),
-    ("Your UPI payment of Rs 240 was successful. Thank you.", "Safe"),
-    ("Your appointment is confirmed for tomorrow at 10 am.", "Safe"),
-    ("Your order has shipped. Track it in the shopping app.", "Safe"),
-    ("Electricity bill paid successfully. Thank you for using the service.", "Safe"),
-    ("Your monthly account summary is now available.", "Safe"),
-    ("A delivery is scheduled for today. Open the official app for details.", "Safe"),
-    ("Your ticket booking is confirmed. Have a pleasant journey.", "Safe"),
-    ("Your payment receipt is available in your account.", "Safe"),
-    ("Your subscription renewal is complete.", "Safe"),
-    ("Your package delivery was attempted. Check the courier's official app.", "Suspicious"),
-    ("A KYC update is requested. Please verify this message with your bank.", "Suspicious"),
-    ("A refund is waiting. Contact customer support using the number on the official website.", "Suspicious"),
-    ("Your account needs attention. Do not share your PIN or OTP with anyone.", "Suspicious"),
-    ("An unfamiliar payment request arrived. Confirm the recipient before proceeding.", "Suspicious"),
-    ("A link claims to offer a reward. Verify the offer through the company's official app.", "Suspicious"),
-    ("Your service may be interrupted. Check your bill using the provider's official app.", "Suspicious"),
-    ("A caller says they are from the bank and asks you to confirm account details.", "Suspicious"),
-    ("You have an unexpected parcel fee. Verify it with the courier before paying.", "Suspicious"),
-    ("An unknown person asks you to install an app to receive a refund.", "Suspicious"),
-    ("URGENT: Your bank account will be blocked today. Click this link to update KYC now.", "Scam"),
-    ("You won a prize. Pay a processing fee immediately to claim your reward.", "Scam"),
-    ("Share your OTP and UPI PIN to reverse the failed transaction.", "Scam"),
-    ("Approve this collect request to receive your money.", "Scam"),
-    ("Electricity will be disconnected tonight. Pay now at this shortened link.", "Scam"),
-    ("Install this remote access app so we can help you get your refund.", "Scam"),
-    ("Your SIM will be deactivated. Send your bank details to verify your account.", "Scam"),
-    ("KYC expired. Click here and enter your card PIN to prevent account closure.", "Scam"),
-    ("Transfer a small fee now to release your parcel and claim a cash reward.", "Scam"),
-    ("This is police. Pay immediately or a case will be filed against you.", "Scam"),
-    ("Congratulations, you are selected for a cash prize. Pay tax to unlock it.", "Scam"),
-    ("Your UPI refund failed. Scan this QR and enter your PIN to receive money.", "Scam"),
-]
-
 _RULES = (
     (
-        "OTP or PIN request",
-        re.compile(r"\b(?:otp|one[- ]time password|upi pin|atm pin|card pin|password)\b", re.I),
-        38,
-        "The message mentions an OTP, PIN, or password. Never share these with anyone.",
+        "Credential request",
+        re.compile(
+            r"\b(?:share|send|tell|provide|enter|submit|type|reveal|confirm)\b"
+            r".{0,50}\b(?:otp|one[- ]time password|upi pin|atm pin|card pin|password)\b",
+            re.I,
+        ),
+        50,
+        "The message asks for a secret such as an OTP, PIN, or password. Never share these with anyone.",
     ),
     (
         "Payment approval pressure",
-        re.compile(r"\b(?:approve|accept|authorize)\b.{0,45}\b(?:collect request|payment|upi)\b|\bcollect request\b", re.I),
-        35,
+        re.compile(
+            r"\b(?:approve|accept|authorize)\b.{0,45}\b(?:collect request|payment|upi)\b"
+            r"|\bcollect request\b",
+            re.I,
+        ),
+        40,
         "A UPI collect request asks you to approve a payment; it does not send you money.",
     ),
     (
-        "Threat or urgency",
-        re.compile(r"\b(?:urgent|immediately|today|tonight|within \d+ hours|will be (?:blocked|disconnected|deactivated))\b", re.I),
-        24,
-        "Urgent threats are commonly used to pressure people into acting without checking.",
+        "Threat and urgency",
+        re.compile(
+            r"\b(?:urgent|immediately|within \d+ hours)\b.{0,80}"
+            r"\b(?:blocked|disconnected|deactivated|suspended|closed|legal action)\b"
+            r"|\b(?:blocked|disconnected|deactivated|suspended|closed|legal action)\b"
+            r".{0,80}\b(?:urgent|immediately|today|tonight|within \d+ hours)\b",
+            re.I,
+        ),
+        25,
+        "A threat combined with urgency can pressure you to act before verifying independently.",
     ),
     (
         "KYC or account threat",
-        re.compile(r"\b(?:kyc|account|sim)\b.{0,50}\b(?:block|suspend|deactivat|expir|close)\w*\b|\b(?:block|suspend|deactivat|expir)\w*.{0,50}\b(?:kyc|account|sim)\b", re.I),
-        30,
+        re.compile(
+            r"\b(?:kyc|account|sim)\b.{0,50}\b(?:block|suspend|deactivat|expir|close)\w*\b"
+            r"|\b(?:block|suspend|deactivat|expir)\w*.{0,50}\b(?:kyc|account|sim)\b",
+            re.I,
+        ),
+        25,
         "A threat involving KYC, an account, or a SIM should be checked through the official provider.",
     ),
     (
-        "Unexpected payment or reward",
-        re.compile(r"\b(?:prize|reward|won|cashback|refund|processing fee|claim)\b", re.I),
-        20,
-        "Unexpected rewards or refunds that require action or payment may be fraudulent.",
+        "Reward or refund fee",
+        re.compile(
+            r"\b(?:pay|send|transfer)\b.{0,50}\b(?:fee|tax|charge)\b.{0,60}"
+            r"\b(?:prize|reward|refund|cashback|claim)\b"
+            r"|\b(?:prize|reward|refund|cashback)\b.{0,60}"
+            r"\b(?:pay|send|transfer)\b.{0,50}\b(?:fee|tax|charge)\b",
+            re.I,
+        ),
+        35,
+        "Being asked to pay a fee to receive a prize, reward, or refund is a strong warning sign.",
     ),
     (
         "Remote access request",
-        re.compile(r"\b(?:remote access|screen sharing|anydesk|teamviewer|install this app)\b", re.I),
-        35,
-        "A request to install remote-access software can expose your banking activity.",
+        re.compile(
+            r"\b(?:install|download|use)\b.{0,40}"
+            r"\b(?:remote access|screen sharing|anydesk|teamviewer|quick support)\b"
+            r"|\b(?:remote access|screen sharing|anydesk|teamviewer|quick support)\b"
+            r".{0,40}\b(?:install|download|use)\b",
+            re.I,
+        ),
+        40,
+        "A request to install or use remote-access software can expose your banking activity.",
     ),
 )
+
+_HINDI_RULES = (
+    (
+        re.compile(
+            r"(?:ओटीपी|otp|upi pin|पिन|पासवर्ड).{0,40}"
+            r"(?:बताएं|बताओ|भेजें|भेजो|साझा करें|share|दर्ज करें|enter)"
+            r"|(?:बताएं|बताओ|भेजें|भेजो|साझा करें|share|दर्ज करें|enter)"
+            r".{0,40}(?:ओटीपी|otp|upi pin|पिन|पासवर्ड)",
+            re.I,
+        ),
+        50,
+        "संदेश OTP, PIN या पासवर्ड जैसी गोपनीय जानकारी मांगता है। इसे किसी के साथ साझा न करें।",
+    ),
+    (
+        re.compile(
+            r"(?:केवाईसी|kyc|खाता|account|सिम|sim).{0,55}"
+            r"(?:बंद|ब्लॉक|निलंबित|डिएक्टिवेट|रोक).{0,45}"
+            r"(?:आज|तुरंत|अभी|घंटे|today|urgent|immediately)"
+            r"|(?:आज|तुरंत|अभी|घंटे|today|urgent|immediately).{0,55}"
+            r"(?:केवाईसी|kyc|खाता|account|सिम|sim).{0,55}"
+            r"(?:बंद|ब्लॉक|निलंबित|डिएक्टिवेट|रोक)",
+            re.I,
+        ),
+        35,
+        "KYC, खाते या SIM को बंद करने की धमकी और जल्दबाजी दबाव बनाने की कोशिश हो सकती है।",
+    ),
+    (
+        re.compile(r"(?:कलेक्ट रिक्वेस्ट|collect request|पैसे पाने के लिए).{0,50}(?:स्वीकार|approve|accept)", re.I),
+        40,
+        "UPI कलेक्ट अनुरोध स्वीकार करने से भुगतान आपके खाते से जा सकता है।",
+    ),
+)
+
+_HINDI_REASON_TRANSLATIONS = {
+    "The message asks for a secret such as an OTP, PIN, or password. Never share these with anyone.": "संदेश OTP, PIN या पासवर्ड जैसी गोपनीय जानकारी मांगता है। इसे किसी के साथ साझा न करें।",
+    "A UPI collect request asks you to approve a payment; it does not send you money.": "UPI कलेक्ट अनुरोध स्वीकार करने से भुगतान आपके खाते से जा सकता है; इससे आपको पैसे नहीं मिलते।",
+    "A threat combined with urgency can pressure you to act before verifying independently.": "धमकी और जल्दबाजी आपको स्वतंत्र रूप से जांचने से पहले कार्रवाई करने के लिए दबाव डाल सकती है।",
+    "A threat involving KYC, an account, or a SIM should be checked through the official provider.": "KYC, खाते या SIM से जुड़ी धमकी की जांच आधिकारिक सेवा प्रदाता से करें।",
+    "Being asked to pay a fee to receive a prize, reward, or refund is a strong warning sign.": "इनाम, रिवॉर्ड या रिफंड पाने के लिए शुल्क मांगना एक मजबूत चेतावनी संकेत है।",
+    "A request to install or use remote-access software can expose your banking activity.": "रिमोट-एक्सेस ऐप इंस्टॉल करने या इस्तेमाल करने का अनुरोध आपकी बैंकिंग गतिविधि उजागर कर सकता है।",
+    "The message contains a link. Verify its destination before opening it.": "संदेश में लिंक है। खोलने से पहले उसका पता स्वतंत्र रूप से जांचें।",
+    "The message contains a link-shortening domain that hides its destination.": "लिंक छोटा करने वाली सेवा असली वेबसाइट का पता छिपा सकती है।",
+    "This rule-based score is not a probability and cannot verify who sent a message. A lack of detected warning signs does not establish that it is safe.": "यह नियम-आधारित स्कोर संभावना नहीं है और संदेश भेजने वाले की पहचान सत्यापित नहीं करता। चेतावनी न मिलना सुरक्षा का प्रमाण नहीं है।",
+    "No strong scam indicators were detected. This is not a guarantee of safety.": "धोखाधड़ी के स्पष्ट संकेत नहीं मिले, लेकिन यह सुरक्षा की गारंटी नहीं है।",
+}
 
 _UPI_RE = re.compile(r"(?<![\w.-])[\w.-]{2,256}@[a-zA-Z][a-zA-Z0-9.-]{1,63}")
 _URL_RE = re.compile(
@@ -134,30 +168,16 @@ def _report_kind(text):
     return "sms"
 
 
-@lru_cache(maxsize=1)
-def _model():
-    data = pd.DataFrame(_TRAINING_EXAMPLES, columns=["text", "label"])
-    pipeline = make_pipeline(
-        TfidfVectorizer(ngram_range=(1, 2), sublinear_tf=True, strip_accents="unicode"),
-        LogisticRegression(max_iter=1000, class_weight="balanced", random_state=42),
-    )
-    pipeline.fit(data["text"], data["label"])
-    return pipeline
-
-
-def analyze_text(text):
+def analyze_text(text, language="en"):
     normalized = text.strip()
-    model = _model()
-    probabilities = model.predict_proba([normalized])[0]
-    model_risk = sum(
-        probability * {"Safe": 0, "Suspicious": 50, "Scam": 90}[label]
-        for label, probability in zip(model.classes_, probabilities)
-    )
 
     rule_risk = 0
     reasons = []
-    for _name, pattern, points, reason in _RULES:
-        if pattern.search(normalized):
+    rules = _RULES + tuple(
+        (None, pattern, points, reason) for pattern, points, reason in _HINDI_RULES
+    )
+    for _, pattern, points, reason in rules:
+        if pattern.search(normalized) and not _is_negated(normalized, pattern):
             rule_risk += points
             reasons.append(reason)
 
@@ -170,7 +190,7 @@ def analyze_text(text):
             reasons.append("The message contains a link-shortening domain that hides its destination.")
             break
         if host:
-            rule_risk += 8
+            rule_risk += 15
             reasons.append("The message contains a link. Verify its destination before opening it.")
             break
 
@@ -184,32 +204,67 @@ def analyze_text(text):
         )
     if matches:
         for indicator in matches:
-            reasons.append(
-                f"This {indicator.kind.replace('_', ' ')} matches a community-verified report."
-            )
+            if language == "hi":
+                indicator_kind = {
+                    "sms": "संदेश",
+                    "url": "लिंक",
+                    "phone": "फोन नंबर",
+                    "upi_id": "UPI ID",
+                }.get(indicator.kind, "पहचान")
+                reasons.append(
+                    f"यह {indicator_kind} ScamShield की moderator-reviewed "
+                    "community report से मेल खाता है।"
+                )
+            else:
+                reasons.append(
+                    f"This {indicator.kind.replace('_', ' ')} matches a community-verified report."
+                )
 
-    score = min(100, int(round(max(model_risk, min(rule_risk, 95)))))
+    score = min(100, rule_risk)
     if matches:
         score = 100
-    if score >= 65:
+    if score >= 60:
         label = "Scam"
     elif score >= 30:
         label = "Suspicious"
     else:
-        label = "Safe"
+        label = "No clear warning signs"
 
     if not reasons:
         reasons.append(
             "No strong scam indicators were detected. This is not a guarantee of safety."
         )
+    if language == "hi":
+        reasons = [_HINDI_REASON_TRANSLATIONS.get(reason, reason) for reason in reasons]
+    model_note = (
+        "This rule-based score is not a probability and cannot verify who sent a message. "
+        "A lack of detected warning signs does not establish that it is safe."
+    )
+    if language == "hi":
+        model_note = _HINDI_REASON_TRANSLATIONS[model_note]
     return {
         "score": score,
         "label": label,
         "reasons": reasons,
-        "model_label": model.predict([normalized])[0],
-        "model_note": "Starter model trained on a small illustrative sample; not a verified production dataset.",
+        "model_note": model_note,
         "report_kind": _report_kind(normalized),
     }
+
+
+def _is_negated(text, pattern):
+    for match in pattern.finditer(text):
+        if re.search(r"(?:\b(?:never|don't|do not|not)\b|नहीं|मत|न\s)", match.group(), re.I):
+            continue
+        prefix = text[max(0, match.start() - 40) : match.start()]
+        if re.search(
+            r"\b(?:never|don't|do not|not|shouldn't|must not|avoid)\b"
+            r"(?:\W+\w+){0,2}\W*$",
+            prefix,
+            re.I,
+        ):
+            continue
+        return False
+    return True
 
 
 def db_or_conditions(candidates):

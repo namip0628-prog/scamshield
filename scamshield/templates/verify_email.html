@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Verify email · ScamShield India{% endblock %}
+{% block content %}
+<section class="page-intro">
+  <span class="eyebrow">EMAIL VERIFICATION</span>
+  <h1>Confirm your email address.</h1>
+  <p>Continue to verify that you can access this email address.</p>
+</section>
+<section class="form-card">
+  <form method="post" class="stack-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="button button-primary" type="submit">Verify email</button>
+  </form>
+</section>
+{% endblock %}
