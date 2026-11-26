@@ -32,6 +32,11 @@ def client(app):
     return app.test_client()
 
 
+@pytest.fixture(autouse=True)
+def disable_optional_model_by_default(monkeypatch):
+    monkeypatch.setattr("scamshield.analysis.predict_scam", lambda _text: None)
+
+
 def test_home_page_renders(client):
     response = client.get("/")
     assert response.status_code == 200
@@ -74,6 +79,20 @@ def test_analyzer_does_not_flag_benign_urgency_alone(client):
     response = client.post("/", data={"text": "Your appointment is today at 10 am."})
     assert b"No clear warning signs" in response.data
     assert b"pressure you to act" not in response.data
+
+
+def test_missing_ml_artifact_is_reported_as_rules_only(client, monkeypatch):
+    monkeypatch.setattr("scamshield.analysis.predict_scam", lambda _text: None)
+    response = client.post("/", data={"text": "Your parcel arrives tomorrow."})
+    assert b"No trained ML model is deployed yet." in response.data
+
+
+def test_ml_scam_signal_can_raise_result_to_suspicious_only(client, monkeypatch):
+    monkeypatch.setattr("scamshield.analysis.predict_scam", lambda _text: True)
+    response = client.post("/", data={"text": "Your parcel arrives tomorrow."})
+    assert b"Suspicious" in response.data
+    assert b">30<" in response.data
+    assert b"trained text model found patterns" in response.data
 
 
 def test_bare_url_gets_link_warning_and_report_match(app, client):

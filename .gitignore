@@ -3,6 +3,7 @@ __pycache__/
 .venv/
 venv/
 instance/
+data/
 .env
 .pytest_cache/
 coverage.xml

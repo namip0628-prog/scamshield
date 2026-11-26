@@ -7,10 +7,12 @@ Reports enter the indicator database only after moderator verification.
 ## What it does
 
 - Analyzes up to 2,000 characters with explicit warning rules and
-  moderator-verified community indicators. It avoids a tiny, unrepresentative
-  text classifier that could produce misleading labels.
+  moderator-verified community indicators. A trained text classifier can be
+  added as a supplementary signal after it passes the documented validation.
 - Returns a 0–100 heuristic risk score, a Scam/Suspicious/No clear warning signs
   label, and human-readable reasons. The score is not a calibrated probability.
+- Can combine the rules with a locally trained text classifier when a validated
+  model artifact is provided. Without one, the app clearly uses rules only.
 - Recognizes bare domains as links, includes testable example messages, and
   offers official cyber-fraud response guidance for high-risk results.
 - Lets users submit a flagged message to the moderator queue directly from its
@@ -113,3 +115,42 @@ python -m pytest
 ```
 
 Tests use an in-memory SQLite database and do not modify the local database.
+
+## Optional supervised text model
+
+The private training CSV is not committed to the repository. A trained model
+artifact may be committed for deployment, but it contains learned features from
+the training data and should only be shared when you are authorized to use that
+data. If no model artifact is present, ScamShield uses its rules and
+moderator-verified indicators only. Do not use unreviewed user submissions as
+scam labels. Obtain consent, redact personal information, and have moderators
+verify labels.
+
+Prepare a private UTF-8 CSV with these columns:
+
+```csv
+text,label,campaign_id
+```
+
+`label` must be `scam` or `legitimate`; `campaign_id` groups messages from the
+same scam campaign or legitimate source so related messages do not appear in
+both training and holdout data. The training script requires at least 50
+distinct examples and 5 campaign groups for each label. It prints
+campaign-separated holdout metrics and saves a model only when scam precision
+is at least 0.70 and recall at least 0.60. These thresholds are a starting
+quality gate, not proof the model is safe for production.
+
+From the repository root, install the declared dependencies and train:
+
+```powershell
+python -m pip install -r requirements.txt
+python scripts/train_model.py --input data/scam_training.csv
+```
+
+The validated artifact is written to
+`model_artifacts/scamshield_text_classifier.joblib`. Deploy that artifact with
+the application code; never commit the private CSV. Set `SCAMSHIELD_MODEL_PATH`
+in Render only if the artifact is stored at a different path. The model can
+only raise a result to Suspicious; it cannot mark a message as definitively
+fraudulent or lower the existing rule-based score. Model files must come from a
+trusted source because loading a joblib file can execute code.

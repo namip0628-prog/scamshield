@@ -1,6 +1,7 @@
 import re
 from urllib.parse import urlparse
 
+from .ml_model import predict_scam
 from .models import Indicator
 
 _RULES = (
@@ -115,6 +116,9 @@ _HINDI_REASON_TRANSLATIONS = {
     "The message contains a link-shortening domain that hides its destination.": "लिंक छोटा करने वाली सेवा असली वेबसाइट का पता छिपा सकती है।",
     "This rule-based score is not a probability and cannot verify who sent a message. A lack of detected warning signs does not establish that it is safe.": "यह नियम-आधारित स्कोर संभावना नहीं है और संदेश भेजने वाले की पहचान सत्यापित नहीं करता। चेतावनी न मिलना सुरक्षा का प्रमाण नहीं है।",
     "No strong scam indicators were detected. This is not a guarantee of safety.": "धोखाधड़ी के स्पष्ट संकेत नहीं मिले, लेकिन यह सुरक्षा की गारंटी नहीं है।",
+    "The trained text model found patterns resembling its scam examples. Verify independently before acting.": "प्रशिक्षित टेक्स्ट मॉडल को अपने धोखाधड़ी उदाहरणों से मिलते-जुलते संकेत मिले। कार्रवाई से पहले स्वतंत्र रूप से जांचें।",
+    "This result uses explicit rules and moderator-verified indicators. No trained ML model is deployed yet.": "यह परिणाम स्पष्ट नियमों और moderator-verified संकेतों पर आधारित है। अभी कोई प्रशिक्षित ML मॉडल उपलब्ध नहीं है।",
+    "This result combines explicit rules, moderator-verified indicators, and a trained text model. The model can be wrong and cannot verify who sent a message.": "यह परिणाम स्पष्ट नियमों, moderator-verified संकेतों और प्रशिक्षित टेक्स्ट मॉडल को मिलाता है। मॉडल गलत हो सकता है और संदेश भेजने वाले की पहचान सत्यापित नहीं करता।",
 }
 
 _UPI_RE = re.compile(r"(?<![\w.-])[\w.-]{2,256}@[a-zA-Z][a-zA-Z0-9.-]{1,63}")
@@ -194,6 +198,14 @@ def analyze_text(text, language="en"):
             reasons.append("The message contains a link. Verify its destination before opening it.")
             break
 
+    ml_prediction = predict_scam(normalized)
+    if ml_prediction:
+        rule_risk = max(rule_risk, 30)
+        reasons.append(
+            "The trained text model found patterns resembling its scam examples. "
+            "Verify independently before acting."
+        )
+
     matches = []
     candidates = set(_candidates(normalized))
     if candidates:
@@ -236,10 +248,16 @@ def analyze_text(text, language="en"):
         )
     if language == "hi":
         reasons = [_HINDI_REASON_TRANSLATIONS.get(reason, reason) for reason in reasons]
-    model_note = (
-        "This rule-based score is not a probability and cannot verify who sent a message. "
-        "A lack of detected warning signs does not establish that it is safe."
-    )
+    if ml_prediction is None:
+        model_note = (
+            "This result uses explicit rules and moderator-verified indicators. "
+            "No trained ML model is deployed yet."
+        )
+    else:
+        model_note = (
+            "This result combines explicit rules, moderator-verified indicators, and a trained "
+            "text model. The model can be wrong and cannot verify who sent a message."
+        )
     if language == "hi":
         model_note = _HINDI_REASON_TRANSLATIONS[model_note]
     return {
